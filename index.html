@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Audit Verification | StudyLocus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .mono { font-family: 'Fira Code', monospace; }
+        .blob {
+            position: absolute;
+            filter: blur(40px);
+            z-index: -1;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+
+    <div class="blob bg-blue-300 w-64 h-64 rounded-full top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
+    <div class="blob bg-purple-300 w-64 h-64 rounded-full bottom-0 right-0 translate-x-1/2 translate-y-1/2"></div>
+
+    <div class="bg-white shadow-2xl rounded-2xl max-w-md w-full overflow-hidden border border-slate-200">
+        
+        <div id="status-header" class="bg-slate-100 p-6 text-center border-b border-slate-200">
+            <div class="animate-pulse w-16 h-16 bg-slate-200 rounded-full mx-auto mb-4"></div>
+            <h1 class="text-xl font-bold text-slate-700">Verifying...</h1>
+        </div>
+
+        <div class="p-6 space-y-6">
+            
+            <div id="data-container" class="hidden space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span class="text-slate-500 text-sm font-medium uppercase tracking-wider">Student</span>
+                    <span id="student-name" class="font-bold text-slate-900 text-lg">--</span>
+                </div>
+
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span class="text-slate-500 text-sm font-medium uppercase tracking-wider">Report ID</span>
+                    <span id="report-id" class="mono text-slate-700">--</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-3 rounded-lg text-center border border-slate-100">
+                        <div class="text-xs text-slate-500 uppercase">Total Study</div>
+                        <div id="total-hours" class="text-xl font-bold text-blue-600">--</div>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg text-center border border-slate-100">
+                        <div class="text-xs text-slate-500 uppercase">Mock Avg</div>
+                        <div id="avg-score" class="text-xl font-bold text-emerald-600">--</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <span class="text-slate-500 text-xs">Generated On</span>
+                    <span id="gen-date" class="text-slate-700 text-sm font-medium">--</span>
+                </div>
+            </div>
+
+            <div id="error-container" class="hidden text-center text-red-500 py-4">
+                <p class="font-bold">Invalid Verification Code</p>
+                <p class="text-sm text-red-400 mt-1">This document cannot be verified.</p>
+            </div>
+
+        </div>
+
+        <div class="bg-slate-50 p-4 text-center border-t border-slate-200">
+            <p class="text-xs text-slate-400">
+                StudyLocus Verification System • <a href="https://sval.tech/studylocus" class="text-blue-500 hover:underline">sval.tech</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Get the 'data' or 'id' param from URL
+            // URL Format: sval.tech/verify?data=BASE64STRING
+            const params = new URLSearchParams(window.location.search);
+            const hash = params.get('data');
+
+            const header = document.getElementById('status-header');
+            const container = document.getElementById('data-container');
+            const errorContainer = document.getElementById('error-container');
+
+            if (!hash) {
+                showError("No Code Found");
+                return;
+            }
+
+            try {
+                // 2. Decode Base64
+                // Format: "User|ReportID|Hours|AvgScore|Date"
+                const decoded = atob(hash);
+                const parts = decoded.split('|');
+
+                if (parts.length < 5) {
+                    throw new Error("Corrupted Data");
+                }
+
+                // 3. Extract Data
+                const [user, rptId, hours, score, date] = parts;
+
+                // 4. Update UI to "Success"
+                header.innerHTML = `
+                    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                    <h1 class="text-xl font-bold text-green-700">Verified Authentic</h1>
+                    <p class="text-xs text-green-600 mt-1 font-medium">Official StudyLocus Audit</p>
+                `;
+                header.className = "bg-green-50 p-6 text-center border-b border-green-100";
+
+                // 5. Populate Data
+                document.getElementById('student-name').textContent = user;
+                document.getElementById('report-id').textContent = rptId;
+                document.getElementById('total-hours').textContent = hours + "h";
+                document.getElementById('avg-score').textContent = score;
+                document.getElementById('gen-date').textContent = date;
+
+                // Show Data
+                container.classList.remove('hidden');
+
+            } catch (e) {
+                console.error(e);
+                showError("Invalid Signature");
+            }
+
+            function showError(msg) {
+                header.innerHTML = `
+                    <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    </div>
+                    <h1 class="text-xl font-bold text-red-700">${msg}</h1>
+                `;
+                header.className = "bg-red-50 p-6 text-center border-b border-red-100";
+                errorContainer.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
